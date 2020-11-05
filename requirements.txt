@@ -1,0 +1,9 @@
+numpy
+scipy
+tqdm
+matplotlib
+xarray
+sympy
+control
+pandas
+numba>=0.46.0

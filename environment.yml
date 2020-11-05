@@ -1,0 +1,15 @@
+name: topone
+dependencies:
+  - python>=3.8
+  - pip
+  - numpy
+  - scipy
+  - control
+  - numba>=0.46.0
+  - pip:
+      - tqdm
+      - matplotlib
+      - xarray
+      - sympy
+      - pandas
+

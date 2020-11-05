@@ -1,0 +1,3 @@
+[submodule "external/cw"]
+	path = external/cw
+	url = https://github.com/aarondewindt/cw.git
