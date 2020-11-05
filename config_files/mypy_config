@@ -1,0 +1,2 @@
+[mypy]
+mypy_path=/home/jovyan/topone/external/cw:/home/jovyan/topone

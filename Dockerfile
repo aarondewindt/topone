@@ -9,6 +9,19 @@ RUN conda install conda-build
 
 # Copy configuration files
 COPY config_files/overrides.json /opt/conda/share/jupyter/lab/settings/overrides.json
+COPY config_files/pycodestyle ./.config/pycodestyle
+COPY config_files/mypy_config ./.config/mypy/config
+
+RUN pip install pyls-mypy
+RUN conda install -c conda-forge nbresuse jupyter-lsp-python
+
+RUN jupyter labextension install \
+    @jupyterlab/toc \
+    @lckr/jupyterlab_variableinspector \
+    @aquirdturtle/collapsible_headings \
+    @krassowski/jupyterlab-lsp \
+    jupyterlab-topbar-extension \
+    jupyterlab-system-monitor
 
 # Copy over project
 RUN mkdir ./topone
