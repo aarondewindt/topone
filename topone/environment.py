@@ -41,6 +41,7 @@ class Environment(ModuleBase):
                 "engine_on",
                 "stage_state",
                 "stage_idx",
+                "h",
             ]
         )
         self.surface_diameter = surface_diameter
@@ -79,6 +80,7 @@ class Environment(ModuleBase):
 
     def step(self):
         r = sqrt(self.s.xii[0]**2 + self.s.xii[1]**2)
+        self.s.h = r - self.surface_diameter
         self.s.gii = -self.mu * self.s.xii / (r**3)
 
         # Switch stages.
@@ -90,6 +92,7 @@ class Environment(ModuleBase):
         elif self.s.stage_state == UNFIRED:
             if self.s.command_engine_on:
                 self.s.stage_state = FIRING
+                self.s.engine_on = True
 
         # Turn the engine off and go to the fired state if the engine has been
         # turned off or ran out of propellant.
@@ -99,7 +102,7 @@ class Environment(ModuleBase):
                 self.s.engine_on = False
 
         if self.s.engine_on:
-            self.s.mass_dot = self.current_stage.thrust / self.current_stage.specific_impulse / g_earth
+            self.s.mass_dot = -self.current_stage.thrust / self.current_stage.specific_impulse / g_earth
             self.s.fii_thrust = np.array([cos(self.s.theta) * self.current_stage.thrust,
                                           sin(self.s.theta) * self.current_stage.thrust])
         else:

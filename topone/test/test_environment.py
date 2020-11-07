@@ -4,9 +4,10 @@ from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 from cw.context import time_it
-from cw.simulation import Simulation, StatesBase, AB3Integrator, ModuleBase, LastValueLogger, Plotter
+from cw.simulation import Simulation, StatesBase, AB3Integrator, ModuleBase, LastValueLogger
 
 from topone.environment import Environment, Stage
+from topone.pid_agent import PIDAgent
 
 
 class TestEnvironment(unittest.TestCase):
@@ -28,6 +29,7 @@ class TestEnvironment(unittest.TestCase):
                     initial_theta=0,
                     initial_latitude=0,
                 ),
+                PIDAgent(1, 0, 0)
             ],
             logging=LastValueLogger(),
             initial_state_values=None,
@@ -36,7 +38,7 @@ class TestEnvironment(unittest.TestCase):
         simulation.initialize()
 
         with time_it("simulation run"):
-            result = simulation.run(100000)
+            result = simulation.run(100)
             print(result)
 
 
@@ -54,6 +56,7 @@ class States(StatesBase):
     theta_dot: float = 0
     mass: float = 0
     mass_dot: float = 0
+    h: float = 0
     engine_on: bool = False
     stage_state: int = 0
     stage_idx: int = 0
