@@ -7,13 +7,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8888:8888
+    environment:
+      DISPLAY: $DISPLAY
     volumes:
       - ./work:/home/jovyan/work
       - ./external:/home/jovyan/topone/external
       - ./topone:/home/jovyan/topone/topone
       - ./setup.py:/home/jovyan/topone/setup.py
       - ./environment.yml:/home/jovyan/topone/environment.yml
-      - ./config_files/overrides.json /opt/conda/share/jupyter/lab/settings/overrides.json
-      - ./config_files/pycodestyle /home/jovyan/.config/pycodestyle
-      - ./config_files/mypy_config /home/jovyan/.config/mypy/config
-
+      - $HOME/.Xauthority:/root/.Xauthority
+    network_mode: "host"
