@@ -14,7 +14,7 @@ class TestEnvironment(unittest.TestCase):
         simulation = Simulation(
             states_class=States,
             integrator=AB3Integrator(
-                h=0.01,
+                h=0.1,
                 rk4=False,
                 fd_max_order=1),
             modules=[
@@ -37,6 +37,7 @@ class TestEnvironment(unittest.TestCase):
 
         with time_it("simulation run"):
             result = simulation.run(100000)
+            print(result)
 
 
 @dataclass
