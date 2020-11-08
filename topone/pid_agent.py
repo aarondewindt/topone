@@ -24,4 +24,3 @@ class PIDAgent(ModuleBase):
         self.s.theta_dot = self.controller.step(self.s.t, self.s.theta)
         if self.s.t > 1:
             self.s.command_engine_on = True
-

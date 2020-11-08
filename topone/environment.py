@@ -120,6 +120,16 @@ class Environment(ModuleBase):
 
         self.s.aii = self.s.gii + self.s.fii_thrust / self.s.mass
 
+    def get_attributes(self):
+        return {
+            "env_surface_diameter": self.surface_diameter,
+            "env_mu": self.mu,
+            "env_stages": self.stages,
+            "env_initial_latitude": self.initial_latitude,
+            "env_initial_altitude": self.initial_altitude,
+            "env_initial_theta": self.initial_theta,
+        }
+
 
 @jit(nopython=True)
 def step_numba(command_engine_on, command_drop_stage,
