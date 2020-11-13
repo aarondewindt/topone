@@ -20,6 +20,7 @@ RUN jupyter labextension install \
     @lckr/jupyterlab_variableinspector \
     @aquirdturtle/collapsible_headings \
     @krassowski/jupyterlab-lsp \
+    @ijmbarr/jupyterlab_spellchecker \
     jupyterlab-topbar-extension \
     jupyterlab-system-monitor
 
