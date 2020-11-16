@@ -1,0 +1,15 @@
+A Survey on Artificial Intelligence Trends in
+Spacecraft Guidance Dynamics and Control
+https://arxiv.org/pdf/1812.02948.pdf
+
+Low-thrust spacecraft trajectory optimization via a DNN-based method
+https://www.sciencedirect.com/science/article/abs/pii/S0273117720303951
+
+A Reinfor A Reinforcement Learning Appr cement Learning Approach to Spacecr o Spacecraft Trajectory
+Optimization
+https://scholarworks.wmich.edu/cgi/viewcontent.cgi?article=4537&context=dissertations
+
+LOW-THRUST OPTIMAL CONTROL VIA REINFORCEMENT LEARNING
+https://www.researchgate.net/publication/331135625_LOW-THRUST_OPTIMAL_CONTROL_VIA_REINFORCEMENT_LEARNING
+
+Multiphase Low-Thrust Trajectory Optimization Using Evolutionary Neurocontrol

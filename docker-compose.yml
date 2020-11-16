@@ -8,7 +8,9 @@ services:
     ports:
       - 8888:8888
     environment:
-      DISPLAY: $DISPLAY
+      - DISPLAY=$DISPLAY
+      - GRANT_SUDO=1
+      - JUPYTER_ENABLE_LAB=1
     volumes:
       - ./work:/home/jovyan/work
       - ./external:/home/jovyan/topone/external

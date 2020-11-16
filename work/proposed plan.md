@@ -1,7 +1,7 @@
 # Proposed plan
 
 ## From references:
- - Most RL research in space/orbit trajortory optimization 
+ - Most RL research in space/orbit trajectory optimization 
    found so far focuses on low-thrust spacecraft and/or 
    interplanetary trajectory optimisation, but there is 
    also research in orbital prediction, planetary landing 
@@ -13,21 +13,21 @@
 
 ## Thesis goals
 ### Research goal
-Research the feasability of using a trained RL agent
+Research the feasibility of using a trained RL agent
 to generate (initial) approximations for ground to orbit 
 trajectories of a winged low earth orbit launcher. The goal is
 to minimize the time for computing an optimal trajectory.
  - Can an RL agent be trained to solve this problem?
- - How would such an agent perform compared to exisiting 
+ - How would such an agent perform compared to existing 
    methods?
  - Can such an RL agent be use in conjunction with one or
    more existing methods to accelerate convergence of the 
-   optimal trajetory estimate.
+   optimal trajectory estimate.
    
 ### Develop
  * RL based method
- * Generic algorith based method
- * Simple/analitical method (gravity turn, etc)
+ * Generic algorithm based method
+ * Simple/analytical method (gravity turn, etc)
 
 ### Compare
  * All methods individually.
@@ -36,13 +36,13 @@ to minimize the time for computing an optimal trajectory.
    algorithm.
 
 
-## Prelimirary thesis
+## Preliminary thesis
 The goal of the preliminary thesis is to collect literature and experiment
-with simple systems in order to adjust the overal scope of the main thesis.
+with simple systems in order to adjust the overall scope of the main thesis.
 
 ### Assumptions
  * 2D simulation of on a circular celestial body
-    - Assumes the target orbital plane is alligned with the
+    - Assumes the target orbital plane is aligned with the
       launch heading.
  * A lunar surface-to-orbit launcher
     - Lunar SSTO's exist. Examples are the Apollo Lunar Module 
@@ -52,7 +52,7 @@ with simple systems in order to adjust the overal scope of the main thesis.
     - Smaller than the earth → shorter simulations → faster training → more experiments.
     - No atmosphere.
  * Basic launcher
-    - No wings, just a convensional launcher
+    - No wings, just a conventional launcher
     
 ### Experiments
  1. **Single stage suborbital launcher.**
@@ -68,8 +68,8 @@ with simple systems in order to adjust the overal scope of the main thesis.
       * Ignite engine (Multiple ignitions not possible)
       * Cuttoff engine
     - Expected optimal behaviour
-      1. Igninte engine at simulation start
-      2. Do not cuttoff the engine untill after
+      1. Ignite engine at simulation start
+      2. Do not cuttoff the engine until after
          all propellant has burned.
 
  2. **Two stage suborbital launcher.**
@@ -86,12 +86,12 @@ with simple systems in order to adjust the overal scope of the main thesis.
       * Cuttoff engine
       * Drop stage
     - Expected optimal behaviour
-      1. Igninte first stage engine at simulation start
-      2. Do not cuttoff the engine untill after
+      1. Ignite first stage engine at simulation start
+      2. Do not cuttoff the engine until after
          all propellant has burned.
       4. Drop first stage close after burnout
       5. Ignite second stage.
-      6. Do not cuttoff the engine untill after
+      6. Do not cuttoff the engine until after
          all propellant has burned.
           
  3. **Single stage to orbit launcher.**
@@ -114,8 +114,8 @@ with simple systems in order to adjust the overal scope of the main thesis.
       * Cuttoff engine
       * Flight path angle or pitch angle or pitch rate.
     - Expected optimal behaviour
-      1. Igninte engine at simulation start
-      2. Cuttoff engine when an appriopiate appogee has been reached
+      1. Ignite engine at simulation start
+      2. Cuttoff engine when an appropriate apogee has been reached
       3. Restart engine to circularize orbit/adjust eccentricity.
           
  4. **Two stage to orbit launcher.**
@@ -137,26 +137,26 @@ with simple systems in order to adjust the overal scope of the main thesis.
       * Cuttoff engine
       * Flight path angle or pitch angle or pitch rate.
     - Expected optimal behaviour
-      1. Igninte first stage engine at simulation start.
-      2. Do not cuttoff the engine untill after
+      1. Ignite first stage engine at simulation start.
+      2. Do not cuttoff the engine until after
          all propellant has burned.
       4. Drop first stage close after burnout.
       5. Ignite second stage.
-      6. Cuttoff engine when an appriopiate appogee has been reached.
+      6. Cuttoff engine when an appropriate apogee has been reached.
       7. Restart engine to circularize orbit/adjust eccentricity.
  
  5. **Terraform the moon and add an atmosphere**
 
 
 ## Thesis experiments
-The goal would be to get rid of some of the assumtions made during
+The goal would be to get rid of some of the assumptions made during
 the preliminary theses and add features. So the plan would be to add 
 the following features one by one. The exact details will depend on
 the results from the preliminary thesis.
  1. Earth ground-to-orbit launcher.
  2. Add design parameters to the agent state space. (Eg, mass, aerodynamics)
  3. Wings aka lift.
- 4. 3D simulation (JSBSim). Orbital plane not alligned with launch heading.
+ 4. 3D simulation (JSBSim). Orbital plane not aligned with launch heading.
  5. Wind
  6. Extra constraints
      - First stage glide-back check. Give negative rewards if it's

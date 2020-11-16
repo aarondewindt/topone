@@ -12,7 +12,7 @@ with open('requirements.txt') as f:
     required = f.read().splitlines()
 
 setup(
-    name='cw',
+    name='topone',
     version=ns['version'],
     description="2D ground to orbit optimization using reinforcement learning.",
     author='Aaron de Windt',
