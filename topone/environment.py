@@ -1,11 +1,11 @@
-from typing import Sequence, Union
+from typing import Sequence, Callable, Optional
 from collections import namedtuple
 from math import sin, cos, sqrt, atan2, pi
 from enum import Enum
 
 import numpy as np
 from numba import jit
-from cw.simulation import ModuleBase
+from cw.simulation import ModuleBase, StatesBase
 from cw.constants import g_earth
 
 
@@ -25,7 +25,8 @@ class Environment(ModuleBase):
                  stages: Sequence[Stage],
                  initial_latitude: float,
                  initial_altitude: float,
-                 initial_theta_e: float):
+                 initial_theta_e: float,
+                 reward_function: Optional[Callable[[StatesBase], float]]=None):
         super().__init__(
             required_states=[
                 # Inputs
@@ -45,7 +46,9 @@ class Environment(ModuleBase):
                 "h",
                 "gamma_i",
                 "gamma_e",
-                "latitude"
+                "latitude",
+                "reward",
+                "reward_integral"
             ]
         )
         self.surface_diameter = surface_diameter
@@ -57,6 +60,8 @@ class Environment(ModuleBase):
         self.initial_latitude = initial_latitude
         self.initial_altitude = initial_altitude
         self.initial_theta_e = initial_theta_e
+
+        self.reward_function = reward_function
 
     def initialize(self, simulation):
         super().initialize(simulation)
@@ -122,6 +127,9 @@ class Environment(ModuleBase):
 
         s.aii = s.gii + s.fii_thrust / s.mass
 
+        if self.reward_function is not None:
+            s.reward = self.reward_function(s)
+
     def get_attributes(self):
         return {
             "env_surface_diameter": self.surface_diameter,
@@ -129,5 +137,5 @@ class Environment(ModuleBase):
             "env_stages": self.stages,
             "env_initial_latitude": self.initial_latitude,
             "env_initial_altitude": self.initial_altitude,
-            "initial_theta_e": self.initial_theta_e,
+            "env_initial_theta_e": self.initial_theta_e,
         }
