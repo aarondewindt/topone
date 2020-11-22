@@ -24,4 +24,9 @@ def sim_post_processing(result: xr.Dataset):
         for i in range(n_samples):
             xie[i, :] = til @ (xii[i] - zero_position)
 
-        return xie
+        result["xie"] = xr.DataArray(
+            data=xie,
+            coords=result.xii.coords,
+            dims=result.xii.dims,
+            name="xie",
+        )

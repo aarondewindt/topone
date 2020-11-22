@@ -124,6 +124,7 @@ class Environment(ModuleBase):
                 s.mass = self.current_stage.dry_mass + self.current_stage.propellant_mass
                 s.stage_state = False
                 s.stage_idx = s.stage_idx
+                self.simulation.integrator.reset(states=True)
 
         s.aii = s.gii + s.fii_thrust / s.mass
 
