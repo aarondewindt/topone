@@ -6,9 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 8888:8888
+      - 9999:8888
     environment:
-      - DISPLAY=$DISPLAY
+#      - DISPLAY=$DISPLAY
       - GRANT_SUDO=1
       - JUPYTER_ENABLE_LAB=1
     volumes:
@@ -17,5 +17,5 @@ services:
       - ./topone:/home/jovyan/topone/topone
       - ./setup.py:/home/jovyan/topone/setup.py
       - ./environment.yml:/home/jovyan/topone/environment.yml
-      - $HOME/.Xauthority:/root/.Xauthority
-    network_mode: "host"
+#      - $HOME/.Xauthority:/root/.Xauthority
+#    network_mode: "host"

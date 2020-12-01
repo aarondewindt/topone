@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from cw.context import time_it
 from cw.simulation import Simulation, StatesBase, AB3Integrator, ModuleBase, LastValueLogger
 
-from topone.environment import Environment, Stage
+from topone.dynamics_1 import Dynamics1, Stage
 from topone.pid_agent import PIDAgent
 
 
@@ -19,7 +19,7 @@ class TestEnvironment(unittest.TestCase):
                 rk4=False,
                 fd_max_order=1),
             modules=[
-                Environment(
+                Dynamics1(
                     surface_diameter=1737.4e3,
                     mu=4.9048695e12,
                     stages=(

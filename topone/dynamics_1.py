@@ -18,15 +18,14 @@ FIRED = 2
 hpi = 0.5 * pi
 
 
-class Environment(ModuleBase):
+class Dynamics1(ModuleBase):
     def __init__(self,
                  surface_diameter: float,
                  mu: float,
                  stages: Sequence[Stage],
                  initial_latitude: float,
                  initial_altitude: float,
-                 initial_theta_e: float,
-                 reward_function: Optional[Callable[[StatesBase], float]]=None):
+                 initial_theta_e: float):
         super().__init__(
             required_states=[
                 # Inputs
@@ -46,9 +45,7 @@ class Environment(ModuleBase):
                 "h",
                 "gamma_i",
                 "gamma_e",
-                "latitude",
-                "reward",
-                "reward_integral"
+                "latitude"
             ]
         )
         self.surface_diameter = surface_diameter
@@ -60,8 +57,6 @@ class Environment(ModuleBase):
         self.initial_latitude = initial_latitude
         self.initial_altitude = initial_altitude
         self.initial_theta_e = initial_theta_e
-
-        self.reward_function = reward_function
 
     def initialize(self, simulation):
         super().initialize(simulation)
@@ -127,15 +122,12 @@ class Environment(ModuleBase):
 
         s.aii = s.gii + s.fii_thrust / s.mass
 
-        if self.reward_function is not None:
-            s.reward = self.reward_function(s)
-
     def get_attributes(self):
         return {
-            "env_surface_diameter": self.surface_diameter,
-            "env_mu": self.mu,
-            "env_stages": self.stages,
-            "env_initial_latitude": self.initial_latitude,
-            "env_initial_altitude": self.initial_altitude,
-            "env_initial_theta_e": self.initial_theta_e,
+            "dynamics1_surface_diameter": self.surface_diameter,
+            "dynamics1_mu": self.mu,
+            "dynamics1_stages": self.stages,
+            "dynamics1_initial_latitude": self.initial_latitude,
+            "dynamics1_initial_altitude": self.initial_altitude,
+            "dynamics1_initial_theta_e": self.initial_theta_e,
         }

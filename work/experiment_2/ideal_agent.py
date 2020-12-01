@@ -11,7 +11,7 @@ import numpy as np
 from cw.simulation import ModuleBase
 from cw.control import PIDController
 
-from topone.environment import UNFIRED, FIRED, FIRING
+from topone.dynamics_1 import UNFIRED, FIRED, FIRING
 
 
 class Action(IntEnum):

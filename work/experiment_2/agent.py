@@ -11,7 +11,7 @@ import numpy as np
 from cw.simulation import ModuleBase
 from cw.control import PIDController
 
-from topone.environment import UNFIRED, FIRED, FIRING
+from topone.dynamics_1 import UNFIRED, FIRED, FIRING
 
 
 class Action(IntEnum):
@@ -46,6 +46,8 @@ class Agent(ModuleBase):
         self.epsilon = epsilon
         self.alpha = alpha
         self.gamma = gamma
+
+        self.greedy_time = 0
 
         self.values = np.zeros((3, 2, 3))
         self.state_action_t0 = None, None, None
@@ -114,7 +116,7 @@ class Agent(ModuleBase):
         return self.actions[np.argmax(self.values[s.stage_state, s.stage_idx, :])]
 
     def evaluate_policy(self, s) -> Action:
-        if random() < self.epsilon:
+        if (random() < self.epsilon) and (self.greedy_time < s.t):
             return choice(self.actions)
         else:
             return self.greedy_action(s)
