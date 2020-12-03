@@ -125,7 +125,7 @@ class LinearSoftmaxAgent(AgentBase):
             expected += probs[b] * self._x(s, b)
         return self._x(s, a) - expected
 
-    def _R(self, t):
+    def _reward_function(self, t):
         """Reward function."""
         total = 0
         for tau in range(t, len(self.rewards)):
@@ -141,7 +141,7 @@ class LinearSoftmaxAgent(AgentBase):
         for t in range(len(self.states)):
             s = self.states[t]
             a = self.actions[t]
-            r = self._R(t)
+            r = self._reward_function(t)
             grad = self._gradient(s, a)
             self.theta = self.theta + self.alpha * r * grad
         # print(self.theta)
@@ -162,19 +162,9 @@ class LinearSoftmaxAgent(AgentBase):
         print(contents)
 
     def step(self):
-        state = State(
-            self.s.stage_state,
-            self.s.stage_idx,
-        )
-
-        if self.previous_iteration is not None:
-            self.store(*self.previous_iteration, self.s.reward)
-
+        state = State(self.s.stage_state,self.s.stage_idx)
         action, probabilities = self.act(state)
-        self.environment.act(action)
-
-        self.previous_iteration = state, action, probabilities
-
-    def end(self):
-        self.store(*self.previous_iteration, self.simulation.states.reward)
-        self.train()
+        reward, done = yield action
+        self.store(state, action, probabilities, reward)
+        if done:
+            self.train()

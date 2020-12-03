@@ -74,7 +74,7 @@ class LinearSoftmaxAgent(AgentBase):
         self.probs.append(prob)
         self.rewards.append(reward)
 
-    def _x(self, s, a):
+    def _feature_vector(self, s, a):
         """
         Feature vector
         """
@@ -87,7 +87,7 @@ class LinearSoftmaxAgent(AgentBase):
         return encoded.flatten()
 
     def _softmax(self, s, a):
-        return np.exp(self.theta.dot(self._x(s, a)) / 100)
+        return np.exp(self.theta.dot(self._feature_vector(s, a)) / 100)
 
     def pi(self, s):
         """\pi(a | s)"""
@@ -107,10 +107,10 @@ class LinearSoftmaxAgent(AgentBase):
         expected = 0
         probs = self.pi(s)
         for b in range(0, self.action_size):
-            expected += probs[b] * self._x(s, b)
-        return self._x(s, a) - expected
+            expected += probs[b] * self._feature_vector(s, b)
+        return self._feature_vector(s, a) - expected
 
-    def _R(self, t):
+    def _reward_function(self, t):
         """Reward function."""
         total = 0
         for tau in range(t, len(self.rewards)):
@@ -123,7 +123,7 @@ class LinearSoftmaxAgent(AgentBase):
         for t in range(len(self.states)):
             s = self.states[t]
             a = self.actions[t]
-            r = self._R(t)
+            r = self._reward_function(t)
             grad = self._gradient(s, a)
             self.theta = self.theta + self.alpha * r * grad
 
@@ -144,11 +144,8 @@ class LinearSoftmaxAgent(AgentBase):
 
     def step(self):
         state = State(self.s.stage_state)
-
-        if self.previous_iteration is not None:
-            self.store(*self.previous_iteration, self.s.reward)
-
         action, probabilities = self.act(state)
-        self.environment.act(action)
-
-        self.previous_iteration = state, action, probabilities
+        reward, done = yield action
+        self.store(state, action, probabilities, reward)
+        if done:
+            self.train()
