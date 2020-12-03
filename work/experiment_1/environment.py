@@ -8,17 +8,13 @@ class Environment(EnvironmentBase):
     def action_space(self) -> spaces.Space:
         return spaces.Discrete(2)
 
-    @property
-    def observation_space(self) -> spaces.Space:
-        return spaces.Discrete(3)
-
-    @property
-    def observation(self):
-        return self.simulation.states.stage_state
-
     def step(self):
-        self.s.reward = (self.s.h-1000)**3
-        self.s.done = False
+        self.s.reward = (self.s.h/1000)**3
+        if (self.s.stage_state == 2) and (self.s.vic[1] < 0):
+            self.s.done = True
+            self.simulation.stop()
+        else:
+            self.s.done = False
 
     def act(self, action):
-        self.s.command_engine_on = bool(action)
+        self.simulation.states.command_engine_on = bool(action)

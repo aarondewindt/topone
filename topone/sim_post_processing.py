@@ -9,8 +9,8 @@ def sim_post_processing(result: xr.Dataset):
     data_var_names = set(result.data_vars)
     n_samples = len(result.t)
 
-    env_surface_diameter = result.attrs['env_surface_diameter']
-    env_initial_latitude = result.attrs['env_initial_latitude']
+    env_surface_diameter = result.attrs['dynamics1_surface_diameter']
+    env_initial_latitude = result.attrs['dynamics1_initial_latitude']
 
     if {"theta", "xii"} <= data_var_names:
         xii = result.xii.values

@@ -1,30 +1,11 @@
-from math import atan2
-from enum import IntEnum
-from random import random, choice
-from copy import deepcopy
-from typing import Optional
-from pathlib import Path
-import pickle
-import time
-
-import numpy as np
-from cw.simulation import ModuleBase
-from cw.control import PIDController
-
-from topone.dynamics_1 import UNFIRED, FIRED, FIRING
+from topone.agent_base import AgentBase
+from topone.environment_base import EnvironmentBase
 
 
-class Action(IntEnum):
-    engine_on = 0
-    engine_off = 1
-    drop_stage = 2
-
-
-class IdealAgent(ModuleBase):
+class IdealAgent(AgentBase):
     def __init__(self, *,
                  target_time_step=0.1,):
         super().__init__(
-            is_discreet=True,
             target_time_step=target_time_step,
             required_states=[
                 "stage_state",
@@ -35,73 +16,50 @@ class IdealAgent(ModuleBase):
                 "command_drop_stage",
                 "delta_v"
             ],
+            path=None
         )
+        self.environment: EnvironmentBase = None
 
     def initialize(self, simulation):
         super().initialize(simulation)
+        self.environment = simulation.find_modules_by_type(EnvironmentBase)[0]
 
-    def store(self):
+    def get_metadata(self):
+        return None
+
+    def set_metadata(self, metadata):
         pass
 
-    def load_last(self, missing_ok=False):
-        pass
-
-    def load_idx(self, idx):
-        pass
-
-    def load(self, path):
-        pass
-
-    def clean(self):
-        pass
-
-    def greedy_action(self, s) -> Action:
-        if s.stage_state == UNFIRED:
-            return Action.engine_on
-        elif s.stage_state == FIRING:
-            return Action.engine_on
-        else:
-            return Action.drop_stage
-
-    def evaluate_policy(self, s) -> Action:
-        return self.greedy_action(s)
+    def act(self, state) -> int:
+        if state[3]:  # Stage 1
+            if state[0]:  # UNFIRED
+                return 2  # Engine On
+            elif state[1]:  # FIRING
+                return 2  # Engine On
+            elif state[2]:  # FIRED:
+                return 2  # Drop stage
+        else:  # Stage 2
+            if state[0]:  # UNFIRED
+                return 1  # Engine On
+            elif state[1]:  # FIRING
+                return 1  # Engine On
+            elif state[2]:  # FIRED:
+                return 0  # Engine Off
 
     def display_value(self):
         pass
 
     def display_greedy_policy(self):
-        class States:
-            def __init__(self, stage_state, stage_idx):
-                self.stage_state = stage_state
-                self.stage_idx = stage_idx
-
         contents = f"Stage 0\n" \
-                   f"  UNFIRED: {self.greedy_action(States(UNFIRED, 0)).name} \n" \
-                   f"  FIRING: {self.greedy_action(States(FIRING, 0)).name}\n" \
-                   f"  FIRED: {self.greedy_action(States(FIRED, 0)).name}\n" \
+                   f"  UNFIRED: {self.act([1, 0, 0, 1, 0])} \n" \
+                   f"  FIRING: {self.act([0, 1, 0, 1, 0])}\n" \
+                   f"  FIRED: {self.act([0, 0, 1, 1, 0])}\n" \
                    f"Stage 1\n" \
-                   f"  UNFIRED: {self.greedy_action(States(UNFIRED, 1)).name} \n" \
-                   f"  FIRING: {self.greedy_action(States(FIRING, 1)).name}\n" \
-                   f"  FIRED: {self.greedy_action(States(FIRED, 1)).name}"
+                   f"  UNFIRED: {self.act([1, 0, 0, 0, 1])} \n" \
+                   f"  FIRING: {self.act([0, 1, 0, 0, 1])}\n" \
+                   f"  FIRED: {self.act([0, 0, 1, 0, 1])}"
         print(contents)
 
     def step(self):
-        # Unpack values from the previous step (t0).
-        s = self.s
-
-        action_t1 = self.evaluate_policy(s)
-
-        # Perform action
-        if action_t1 == Action.engine_on:
-            s.command_engine_on = True
-            s.command_drop_stage = False
-        elif action_t1 == Action.engine_off:
-            s.command_engine_on = False
-            s.command_drop_stage = False
-        else:  # Drop stage
-            s.command_engine_on = False
-            s.command_drop_stage = True
-
-
-
-
+        action = self.act(self.environment.observation)
+        self.environment.act(action)

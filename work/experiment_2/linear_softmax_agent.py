@@ -1,6 +1,5 @@
 import random
 from collections import namedtuple
-from typing import Optional
 from pathlib import Path
 
 import numpy as np
@@ -9,7 +8,7 @@ from topone.agent_base import AgentBase
 from topone.environment_base import EnvironmentBase
 
 
-State = namedtuple("State", ("stage_state",))
+State = namedtuple("State", ("stage_state", "stage_idx"))
 
 
 class LinearSoftmaxAgent(AgentBase):
@@ -34,11 +33,10 @@ class LinearSoftmaxAgent(AgentBase):
         self.alpha = alpha
         self.gamma = gamma
 
-        self.state_size = None
         self.action_size = None
         self.theta = None
 
-        self.environment = None
+        self.environment: EnvironmentBase = None
         self.action_space = None
 
         self.states = []
@@ -58,15 +56,14 @@ class LinearSoftmaxAgent(AgentBase):
         self.action_space = self.environment.action_space
 
         if self.theta is None:
-            self.state_size = 3
             self.action_size = self.action_space.n
-            self.theta = np.random.random(self.state_size * self.action_size)
+            self.theta = np.random.random(11 * self.action_size)
 
     def get_metadata(self):
-        return self.alpha, self.gamma, self.state_size, self.action_size, self.theta
+        return self.alpha, self.gamma, self.action_size, self.theta
 
     def set_metadata(self, metadata):
-        self.alpha, self.gamma, self.state_size, self.action_size, self.theta = metadata
+        self.alpha, self.gamma, self.action_size, self.theta = metadata
 
     def store(self, state, action, prob, reward):
         self.states.append(state)
@@ -78,11 +75,29 @@ class LinearSoftmaxAgent(AgentBase):
         """
         Feature vector
         """
-        s = (s.stage_state == 0,
-             s.stage_state == 1,
-             s.stage_state == 2)
 
-        encoded = np.zeros([self.action_size, self.state_size])
+        s = (
+            s[0] == 0,
+            s[0] == 1,
+            s[0] == 2,
+            s[1] == 0,
+            s[1] == 1,
+        )
+
+        s = (
+            *s,
+
+            s[0] * s[3],
+            s[0] * s[4],
+
+            s[1] * s[3],
+            s[1] * s[4],
+
+            s[1] * s[3],
+            s[1] * s[4],
+        )
+
+        encoded = np.zeros([self.action_size, 11])
         encoded[a] = s
         return encoded.flatten()
 
@@ -118,6 +133,9 @@ class LinearSoftmaxAgent(AgentBase):
         return total
 
     def train(self):
+        if len(self.rewards) == 0:
+            raise RuntimeError("No training data collected.")
+
         self.rewards -= np.mean(self.rewards)
         self.rewards /= np.std(self.rewards)
         for t in range(len(self.states)):
@@ -126,24 +144,28 @@ class LinearSoftmaxAgent(AgentBase):
             r = self._R(t)
             grad = self._gradient(s, a)
             self.theta = self.theta + self.alpha * r * grad
-
+        # print(self.theta)
         self.states = []
         self.actions = []
         self.probs = []
         self.rewards = []
 
     def display_greedy_policy(self):
-        probabilities = self.pi(State(0))
-        print(f"UNFIRED: {probabilities}")
-
-        probabilities = self.pi(State(1))
-        print(f"FIRING: {probabilities}")
-
-        probabilities = self.pi(State(2))
-        print(f"FIRED: {probabilities}")
+        contents = f"Stage 0\n" \
+                   f"  UNFIRED: {np.argmax((p := self.pi(State(0, 0))))} {p} \n" \
+                   f"  FIRING: {np.argmax((p := self.pi(State(1, 0))))} {p}\n" \
+                   f"  FIRED: {np.argmax((p := self.pi(State(2, 0))))} {p}\n" \
+                   f"Stage 1\n" \
+                   f"  UNFIRED: {np.argmax((p := self.pi(State(0, 1))))} {p} \n" \
+                   f"  FIRING: {np.argmax((p := self.pi(State(1, 1))))} {p}\n" \
+                   f"  FIRED: {np.argmax((p := self.pi(State(2, 1))))} {p}"
+        print(contents)
 
     def step(self):
-        state = State(self.s.stage_state)
+        state = State(
+            self.s.stage_state,
+            self.s.stage_idx,
+        )
 
         if self.previous_iteration is not None:
             self.store(*self.previous_iteration, self.s.reward)
@@ -152,3 +174,7 @@ class LinearSoftmaxAgent(AgentBase):
         self.environment.act(action)
 
         self.previous_iteration = state, action, probabilities
+
+    def end(self):
+        self.store(*self.previous_iteration, self.simulation.states.reward)
+        self.train()

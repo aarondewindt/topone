@@ -35,6 +35,8 @@ class Dynamics1(ModuleBase):
                 # Output
                 "gii",  # Gravitational acceleration in the the inertial frame expressed in the inertial frame.
                 "xii", "vii", "aii",  # Inertial position, velocity and acceleration expressed in the inertial frame.
+                "tci",
+                "vic",
                 "theta", "theta_dot",
                 "mass",
                 "mass_dot",
@@ -85,6 +87,11 @@ class Dynamics1(ModuleBase):
         s.latitude = atan2(s.xii[1], s.xii[0])
         s.gamma_e = hpi + s.gamma_i - s.latitude
 
+        s.tci = np.array(((-sin(s.latitude), cos(s.latitude)),
+                          (cos(s.latitude), sin(s.latitude))))
+
+        s.vic = s.tci @ s.vii
+
         # Switch stages.
         # Keep the engine off if it's been fired already.
         if s.stage_state == FIRED:
@@ -121,6 +128,9 @@ class Dynamics1(ModuleBase):
                 self.simulation.integrator.reset(states=True)
 
         s.aii = s.gii + s.fii_thrust / s.mass
+
+        if s.h <= 0:
+            self.simulation.stop()
 
     def get_attributes(self):
         return {
