@@ -1,10 +1,15 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
+import inspect
 import pickle
 import time
 
+from gym import Space
+
 from cw.simulation import ModuleBase
+
+from topone.environment_base import EnvironmentBase
 
 
 class AgentBase(ModuleBase, ABC):
@@ -20,6 +25,45 @@ class AgentBase(ModuleBase, ABC):
         )
         self.path = None if path is None else Path(path)
         self.last_save_time = None
+
+        self.environment: EnvironmentBase = None
+        self.action_space: Space = None
+
+        self.step_generator = None
+
+    def initialize(self, simulation):
+        super().initialize(simulation)
+
+        if not inspect.isgeneratorfunction(self.step):
+            raise ValueError("The agent step function must be a generator function.")
+
+        self.environment: EnvironmentBase = simulation.find_modules_by_type(EnvironmentBase)[0]
+        self.action_space = self.environment.action_space
+        self.step_generator = None
+
+    def run_step(self):
+        self.s = self.simulation.states
+
+        if self.step_generator is None:
+            self.step_generator = self.step()
+            self.environment.act(next(self.step_generator))
+        else:
+            try:
+                self.step_generator.send((self.s.reward, False))
+            except StopIteration:
+                pass
+
+            self.step_generator = self.step()
+            self.environment.act(next(self.step_generator))
+
+        del self.s
+
+    def end(self):
+        if self.step_generator is not None:
+            try:
+                self.step_generator.send((self.simulation.states.reward, True))
+            except StopIteration:
+                pass
 
     def get_backup_indices(self):
         idxs = []
@@ -92,4 +136,3 @@ class AgentBase(ModuleBase, ABC):
     @abstractmethod
     def set_metadata(self, metadata):
         pass
-

@@ -1,5 +1,10 @@
+from collections import namedtuple
+
 from topone.agent_base import AgentBase
 from topone.environment_base import EnvironmentBase
+
+
+State = namedtuple("State", ("stage_state", "stage_idx"))
 
 
 class IdealAgent(AgentBase):
@@ -19,6 +24,10 @@ class IdealAgent(AgentBase):
             path=None
         )
         self.environment: EnvironmentBase = None
+
+        self.policy = [[1, 1],
+                       [1, 1],
+                       [2, 2]]
 
     def initialize(self, simulation):
         super().initialize(simulation)
@@ -51,15 +60,15 @@ class IdealAgent(AgentBase):
 
     def display_greedy_policy(self):
         contents = f"Stage 0\n" \
-                   f"  UNFIRED: {self.act([1, 0, 0, 1, 0])} \n" \
-                   f"  FIRING: {self.act([0, 1, 0, 1, 0])}\n" \
-                   f"  FIRED: {self.act([0, 0, 1, 1, 0])}\n" \
+                   f"  UNFIRED: {self.policy[0][0]} \n" \
+                   f"  FIRING: {self.policy[1][0]}\n" \
+                   f"  FIRED: {self.policy[2][0]}\n" \
                    f"Stage 1\n" \
-                   f"  UNFIRED: {self.act([1, 0, 0, 0, 1])} \n" \
-                   f"  FIRING: {self.act([0, 1, 0, 0, 1])}\n" \
-                   f"  FIRED: {self.act([0, 0, 1, 0, 1])}"
+                   f"  UNFIRED: {self.policy[0][1]} \n" \
+                   f"  FIRING: {self.policy[1][1]}\n" \
+                   f"  FIRED: {self.policy[2][1]}"
         print(contents)
 
     def step(self):
-        action = self.act(self.environment.observation)
-        self.environment.act(action)
+        action = self.policy[self.s.stage_state][self.s.stage_idx]
+        reward, done = yield action

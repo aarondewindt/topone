@@ -42,9 +42,11 @@ class Environment(EnvironmentBase):
             s.command_drop_stage = True
 
     def step(self):
-        self.s.reward = (self.s.h/1000)**3
+        # self.s.reward = (self.s.h/1000)**3
 
         # self.s.reward = self.s.vic[1]
+
+        self.s.reward = 0
 
         if self.s.t > 1 and (self.s.vic[1] <= 0):
             self.simulation.stop()
