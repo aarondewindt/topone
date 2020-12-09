@@ -31,6 +31,12 @@ class AgentBase(ModuleBase, ABC):
 
         self.step_generator = None
 
+        self.score = 0
+        self.total_score_sum = 0
+        self.score_sum = 0
+        self.n_episodes = 0
+        self.n_total_episodes = 0
+
     def initialize(self, simulation):
         super().initialize(simulation)
 
@@ -55,6 +61,7 @@ class AgentBase(ModuleBase, ABC):
 
             self.step_generator = self.step()
             self.environment.act(next(self.step_generator))
+            self.score += self.s.reward
 
         del self.s
 
@@ -64,6 +71,14 @@ class AgentBase(ModuleBase, ABC):
                 self.step_generator.send((self.simulation.states.reward, True))
             except StopIteration:
                 pass
+        self.score_sum += self.score
+        self.total_score_sum += self.score
+        self.n_episodes += 1
+        self.n_total_episodes += 1
+
+    @property
+    def average_score(self):
+        return self.score_sum / self.n_episodes
 
     def get_backup_indices(self):
         idxs = []
@@ -75,7 +90,7 @@ class AgentBase(ModuleBase, ABC):
                 pass
         return tuple(sorted(idxs))
 
-    def save(self, label=None):
+    def save(self, label=None, reset_average_score=True):
         if self.path is None:
             return
 
@@ -88,7 +103,13 @@ class AgentBase(ModuleBase, ABC):
         metadata = self.get_metadata()
         with (self.path / f"agent.{label}.pickle").open("wb") as f:
             self.last_save_time = time.time()
-            pickle.dump((metadata, self.last_save_time), f)
+            pickle.dump((1, metadata, self.last_save_time,
+                         self.score_sum, self.total_score_sum,
+                         self.n_episodes, self.n_total_episodes), f)
+
+        if reset_average_score:
+            self.score_sum = 0
+            self.n_episodes = 0
 
     def load(self, label, missing_ok=False):
         if self.path is None:
@@ -99,7 +120,20 @@ class AgentBase(ModuleBase, ABC):
         agent_metadata_path = self.path / f"agent.{label}.pickle"
         if agent_metadata_path.exists():
             with agent_metadata_path.open("rb") as f:
-                metadata, self.last_save_time = pickle.load(f)
+                data = pickle.load(f)
+                # I didn't think of having different versions of the agent datafile.
+                # So the first version will be the only one to contain two elements.
+                if len(data) == 2:  # First format version (v0)
+                    metadata, self.last_save_time = pickle.load(f)
+                else:
+                    version = data[0]
+                    if version == 1:
+                        _, metadata, self.last_save_time, \
+                        self.score_sum, self.total_score_sum, \
+                        self.n_episodes, self.n_total_episodes = data
+                    else:
+                        raise NotImplemented(f"Agent datafile format version '{version}' not supported.")
+
             self.set_metadata(metadata)
         else:
             if not missing_ok:

@@ -57,7 +57,7 @@ class LinearSoftmaxAgent(AgentBase):
 
         if self.theta is None:
             self.action_size = self.action_space.n
-            self.theta = np.random.random(11 * self.action_size)
+            self.theta = np.random.random(6 * self.action_size)
 
     def get_metadata(self):
         return self.alpha, self.gamma, self.action_size, self.theta
@@ -85,7 +85,7 @@ class LinearSoftmaxAgent(AgentBase):
         )
 
         s = (
-            *s,
+            # *s,
 
             s[0] * s[3],
             s[0] * s[4],
@@ -93,11 +93,11 @@ class LinearSoftmaxAgent(AgentBase):
             s[1] * s[3],
             s[1] * s[4],
 
-            s[1] * s[3],
-            s[1] * s[4],
+            s[2] * s[3],
+            s[2] * s[4],
         )
 
-        encoded = np.zeros([self.action_size, 11])
+        encoded = np.zeros([self.action_size, 6])
         encoded[a] = s
         return encoded.flatten()
 
