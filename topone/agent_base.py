@@ -170,3 +170,7 @@ class AgentBase(ModuleBase, ABC):
     @abstractmethod
     def set_metadata(self, metadata):
         pass
+
+    @abstractmethod
+    def display_greedy_policy(self):
+        pass

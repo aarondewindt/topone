@@ -1,4 +1,4 @@
-FROM jupyter/scipy-notebook
+FROM jupyter/tensorflow-notebook
 
 # Set the jupyter user's home directory as the working derectory and switch to the root user.
 WORKDIR $HOME
