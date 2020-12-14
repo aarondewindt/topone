@@ -5,17 +5,80 @@ import inspect
 import pickle
 import time
 
-from gym import Env
+from gym import Space
+
+from cw.simulation import ModuleBase
+
+from topone.environment_base import EnvironmentBase
 
 
-class AgentBase(ABC):
+class AgentModuleBase(ModuleBase, ABC):
     def __init__(self,
-                 environment: Env,
                  path: Optional[Path]=None,
+                 target_time_step: float=0.1,
+                 required_states=None
                  ):
+        super().__init__(
+            target_time_step=target_time_step,
+            is_discreet=True,
+            required_states=required_states
+        )
         self.path = None if path is None else Path(path)
         self.last_save_time = None
-        self.environment = environment
+
+        self.environment: EnvironmentBase = None
+        self.action_space: Space = None
+
+        self.step_generator = None
+
+        self.score = 0
+        self.total_score_sum = 0
+        self.score_sum = 0
+        self.n_episodes = 0
+        self.n_total_episodes = 0
+
+    def initialize(self, simulation):
+        super().initialize(simulation)
+
+        if not inspect.isgeneratorfunction(self.step):
+            raise ValueError("The agent step function must be a generator function.")
+
+        self.environment: EnvironmentBase = simulation.find_modules_by_type(EnvironmentBase)[0]
+        self.action_space = self.environment.action_space
+        self.step_generator = None
+
+    def run_step(self):
+        self.s = self.simulation.states
+
+        if self.step_generator is None:
+            self.step_generator = self.step()
+            self.environment.act(next(self.step_generator))
+        else:
+            try:
+                self.step_generator.send((self.s.reward, False))
+            except StopIteration:
+                pass
+
+            self.step_generator = self.step()
+            self.environment.act(next(self.step_generator))
+            self.score += self.s.reward
+
+        del self.s
+
+    def end(self):
+        if self.step_generator is not None:
+            try:
+                self.step_generator.send((self.simulation.states.reward, True))
+            except StopIteration:
+                pass
+        self.score_sum += self.score
+        self.total_score_sum += self.score
+        self.n_episodes += 1
+        self.n_total_episodes += 1
+
+    @property
+    def average_score(self):
+        return self.score_sum / self.n_episodes
 
     def get_backup_indices(self):
         idxs = []

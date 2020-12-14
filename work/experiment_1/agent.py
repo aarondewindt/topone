@@ -5,11 +5,11 @@ from pathlib import Path
 import numpy as np
 
 from topone.dynamics_1 import UNFIRED, FIRED, FIRING
-from topone.agent_base import AgentBase
+from topone.agent_module_base import AgentModuleBase
 from topone.environment_base import EnvironmentBase
 
 
-class Agent(AgentBase):
+class AgentModule(AgentModuleBase):
     def __init__(self, *,
                  epsilon: float,
                  alpha: float,

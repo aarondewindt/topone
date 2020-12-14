@@ -1,13 +1,13 @@
 from collections import namedtuple
 
-from topone.agent_base import AgentBase
+from topone.agent_module_base import AgentModuleBase
 from topone.environment_base import EnvironmentBase
 
 
 State = namedtuple("State", ("stage_state", "stage_idx"))
 
 
-class IdealAgent(AgentBase):
+class IdealAgentModule(AgentModuleBase):
     def __init__(self, *,
                  target_time_step=0.1,):
         super().__init__(

@@ -4,14 +4,14 @@ from pathlib import Path
 
 import numpy as np
 
-from topone.agent_base import AgentBase
+from topone.agent_module_base import AgentModuleBase
 from topone.environment_base import EnvironmentBase
 
 
 State = namedtuple("State", ("stage_state", "stage_idx"))
 
 
-class LinearSoftmaxAgent(AgentBase):
+class LinearSoftmaxAgentModule(AgentModuleBase):
     def __init__(self, *,
                  alpha: float,
                  gamma: float,
