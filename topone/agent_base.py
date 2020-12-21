@@ -15,7 +15,13 @@ class AgentBase(ABC):
                  ):
         self.path = None if path is None else Path(path)
         self.last_save_time = None
+        self.last_save_idx = None
+        self.next_save_idx = 0
         self.environment = environment
+
+        if len(idxs := self.get_backup_indices()):
+            self.last_save_idx = idxs[-1]
+            self.next_save_idx = self.last_save_idx + 1
 
     def get_backup_indices(self):
         idxs = []
@@ -27,7 +33,7 @@ class AgentBase(ABC):
                 pass
         return tuple(sorted(idxs))
 
-    def save(self, label=None, reset_average_score=True):
+    def save(self, label=None):
         if self.path is None:
             return
 
@@ -36,6 +42,8 @@ class AgentBase(ABC):
         if label is None:
             idxs = self.get_backup_indices()
             label = idxs[-1] + 1 if idxs else 0
+            self.last_save_idx = label
+            self.next_save_idx = label + 1
 
         metadata = self.get_metadata()
         with (self.path / f"agent.{label}.pickle").open("wb") as f:

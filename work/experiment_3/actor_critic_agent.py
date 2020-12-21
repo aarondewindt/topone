@@ -1,7 +1,8 @@
 import random
-from collections import namedtuple
-from typing import Optional, Tuple, List, cast
+from collections import namedtuple, deque
+from typing import Optional, Tuple, List, cast, Deque
 from pathlib import Path
+from time import process_time, time
 
 import numpy as np
 import tensorflow as tf
@@ -17,7 +18,7 @@ from topone.agent_base import AgentBase
 from topone.environment_base import EnvironmentBase
 
 
-State = namedtuple("State", ("stage_state",))
+TrainingHistory = namedtuple("TrainingHistory", ("reward_sum", "save_idx", "process_time"))
 
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
@@ -41,11 +42,13 @@ class ActorCriticAgent(AgentBase):
 
         self.critic_loss_function = tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.SUM)
 
+        self.training_history: Deque[TrainingHistory] = deque()
+
         if load_last:
             self.load_last(missing_ok=True)
 
         if self.model is None:
-            self.model = ActorCriticNetwork.create_new(self.environment.action_space.n, 32)
+            self.model = ActorCriticNetwork.create_new(6, self.environment.action_space.n)
 
     def get_metadata(self):
         return {
@@ -53,7 +56,8 @@ class ActorCriticAgent(AgentBase):
             "gamma": self.gamma,
             "model_config": self.model.get_config(),
             "optimizer": self.optimizer.get_config(),
-            "critic_loss_function": self.critic_loss_function.get_config()
+            "critic_loss_function": self.critic_loss_function.get_config(),
+            "training_history": self.training_history,
         }
 
     def set_metadata(self, metadata):
@@ -63,28 +67,30 @@ class ActorCriticAgent(AgentBase):
             self.model = ActorCriticNetwork.from_config(metadata["model_config"])
             self.optimizer = tf.keras.optimizers.Adam.from_config(metadata['optimizer'])
             self.critic_loss_function = tf.keras.losses.Huber.from_config(metadata['critic_loss_function'])
+            self.training_history = metadata["training_history"]
         else:
             raise NotImplemented(f"ActorCriticAgentModule metadata version `{metadata['version']}` not supported")
-
-    def display_greedy_policy(self):
-        pass
 
     def env_step(self, action: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Returns state, reward and done flag given an action."""
         state, reward, done, _ = self.environment.step(action)
+
+        # if done:
+        #     print("done", reward)
+
         return (state.astype(np.float32),
-                np.array(reward, np.int32),
+                np.array(reward, np.float32),
                 np.array(done, np.int32))
 
     def tf_env_step(self, action: tf.Tensor) -> List[tf.Tensor]:
         return tf.numpy_function(self.env_step, [action],
-                                 [tf.float32, tf.int32, tf.int32])
+                                 [tf.float32, tf.float32, tf.int32])
 
     def run_episode(self, initial_state: tf.Tensor, n_max_steps):
         if self.environment.thread_running:
             action_probs = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
             values = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
-            rewards = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True)
+            rewards = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
 
             initial_state_shape = initial_state.shape
             state = initial_state
@@ -94,7 +100,7 @@ class ActorCriticAgent(AgentBase):
                 state = tf.expand_dims(state, 0)
 
                 # Run the model and to get action probabilities and critic value
-                action_logits_t, value = self.model(state)
+                action_logits_t, value = self.model(state, training=True)
 
                 # Sample next action from the action probability distribution
                 action = tf.random.categorical(action_logits_t, 1)[0, 0]
@@ -198,36 +204,82 @@ class ActorCriticAgent(AgentBase):
 
         return episode_reward
 
-    def train(self, n_max_steps, n_episodes):
-        running_reward = 0
+    def train(self, n_max_steps, n_episodes, save_period=None, max_runtime=None):
+        if self.environment.thread_running:
+            running_reward = None
+            start_time = time()
+            e0 = len(self.training_history)
 
-        with trange(n_episodes) as p:
-            for episode_idx in p:
-                initial_state = tf.constant(self.environment.reset(), dtype=tf.float32)
-                episode_reward = int(self.train_step(initial_state, self.model, self.optimizer, n_max_steps+2))
+            with trange(n_episodes) as p:
+                for episode_idx in p:
+                    t0 = process_time()
+                    initial_state = tf.constant(self.environment.reset(), dtype=tf.float32)
+                    episode_reward = float(self.train_step(initial_state, self.model, self.optimizer, n_max_steps+2))
 
-                running_reward = episode_reward * 0.01 + running_reward * .99
+                    self.training_history.append(TrainingHistory(episode_reward,
+                                                                 self.next_save_idx,
+                                                                 process_time() - t0))
 
-                p.set_description(f'Episode {episode_idx}')
-                p.set_postfix(episode_reward=episode_reward, running_reward=running_reward)
+                    if save_period:
+                        if self.last_save_time:
+                            if time() - self.last_save_time > save_period:
+                                self.save()
+                        else:
+                            self.save()
+
+                    if max_runtime:
+                        if time() - start_time > max_runtime:
+                            break
+
+                    if running_reward is None:
+                        running_reward = episode_reward
+                    else:
+                        running_reward = episode_reward * 0.01 + running_reward * .99
+
+                    p.set_description(f'Episode {episode_idx + e0}')
+                    p.set_postfix(episode_reward=f"{episode_reward:4.3e}", running_reward=running_reward)
+
+            self.save()
+        else:
+            raise Exception("Simulation thread not running.")
 
     def run_episode_greedy(self, n_max_steps):
-        self.environment.simulation.logging.log_full_episode = True
-        state = tf.constant(self.environment.reset(), dtype=tf.float32)
-        future = self.environment.create_result_future()
-        for i in range(1, n_max_steps + 1):
-            state = tf.expand_dims(state, 0)
-            action_probs, _ = self.model(state)
-            action = np.argmax(np.squeeze(action_probs))
+        if self.environment.thread_running:
+            self.environment.simulation.logging.log_full_episode = True
+            state = tf.constant(self.environment.reset(), dtype=tf.float32)
+            future = self.environment.create_result_future()
+            for i in range(1, n_max_steps + 1):
+                state = tf.expand_dims(state, 0)
+                action_probs, _ = self.model(state)
+                action = np.argmax(np.squeeze(action_probs))
 
-            state, _, done, _ = self.environment.step(action)
-            state = tf.constant(state, dtype=tf.float32)
+                state, _, done, _ = self.environment.step(action)
+                state = tf.constant(state, dtype=tf.float32)
 
-            if done:
-                break
-        result = future.result(30)
-        self.environment.simulation.logging.log_full_episode = False
-        return result
+                if done:
+                    break
+            result = future.result(30)
+            self.environment.simulation.logging.log_full_episode = False
+            return result
+        else:
+            raise Exception("Simulation thread not running")
+
+    def pi(self, state):
+        state = tf.expand_dims(tf.constant(state, dtype=tf.float32), 0)
+        action_probs = tf.nn.softmax(self.model(state)[0])
+        action = np.argmax(np.squeeze(action_probs))
+        return action, action_probs
+
+    def display_greedy_policy(self):
+        h = 1
+        action, action_probs = self.pi((1., 0., 0.))
+        print(f"UNFIRED: {action} {action_probs}")
+
+        action, action_probs = self.pi((0., 1., 0.))
+        print(f"FIRING: {action} {action_probs}")
+
+        action, action_probs = self.pi((0., 0., 1.))
+        print(f"FIRED: {action} {action_probs}")
 
 
 class ActorCriticNetwork(tf.keras.Model):
@@ -243,13 +295,16 @@ class ActorCriticNetwork(tf.keras.Model):
         self.critic = critic_model
 
     def call(self, inputs: tf.Tensor, training=None, mask=None) -> Tuple[tf.Tensor, tf.Tensor]:
-        x = self.common(inputs)
+        x = self.common(inputs, training=training)
         return self.actor(x), self.critic(x)
 
     @classmethod
     def create_new(cls, num_hidden_units: int, num_actions: int):
         return cls(
-            common_model=layers.Dense(num_hidden_units, activation="relu"),
+            common_model=tf.keras.models.Sequential([
+                layers.Dropout(0.1),
+                layers.Dense(num_hidden_units, activation="relu")
+            ]),
             actor_model=layers.Dense(num_actions),
             critic_model=layers.Dense(1))
 
@@ -266,7 +321,7 @@ class ActorCriticNetwork(tf.keras.Model):
         version = semver.parse_version_info(config["version"])
         if version == "0.0.0":
             return cls(
-                common_model=layers.Dense.from_config(config["common_config"]),
+                common_model=tf.keras.models.Sequential.from_config(config["common_config"]),
                 actor_model=layers.Dense.from_config(config["actor_config"]),
                 critic_model=layers.Dense.from_config(config["critic_config"]),
             )

@@ -77,7 +77,7 @@ class Dynamics1(ModuleBase):
             sin(self.initial_latitude) * initial_r
         ])
 
-    def step(self):
+    def step(self, is_last):
         s = self.s
         r = sqrt(s.xii[0]**2 + s.xii[1]**2)
         s.h = r - self.surface_diameter
