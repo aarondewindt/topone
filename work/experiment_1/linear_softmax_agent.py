@@ -12,7 +12,7 @@ from topone.environment_base import EnvironmentBase
 State = namedtuple("State", ("stage_state",))
 
 
-class LinearSoftmaxAgentModule(AgentModuleBase):
+class LinearSoftmaxAgent(AgentModuleBase):
     def __init__(self, *,
                  alpha: float,
                  gamma: float,

@@ -9,7 +9,7 @@ from topone.agent_module_base import AgentModuleBase
 from topone.environment_base import EnvironmentBase
 
 
-class AgentModule(AgentModuleBase):
+class Agent(AgentModuleBase):
     def __init__(self, *,
                  epsilon: float,
                  alpha: float,

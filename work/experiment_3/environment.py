@@ -1,6 +1,7 @@
 from typing import Any, Tuple
 
 from gym import spaces
+import numpy as np
 
 from cw.simulation import GymEnvironment
 
@@ -19,11 +20,10 @@ class Environment(GymEnvironment):
         self.observation_space = spaces.Discrete(3)
 
     def act(self, action: Any):
-        print(f"*envi: performing action '{action}'")
+        pass
 
     def observe(self, done: bool) -> Tuple[Any, float, dict]:
-        print(f"*envi: observing")
         if done:
-            return self.s.h, self.s.h, {'time': self.s.t}
+            return np.array([self.s.h, self.s.vic[1]]), 0., {'time': self.s.t}
         else:
-            return 0, self.s.h, {'time': self.s.t}
+            return np.array([self.s.h, self.s.vic[1]]), self.s.h, {'time': self.s.t}

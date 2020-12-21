@@ -5,12 +5,12 @@ import inspect
 import pickle
 import time
 
-from gym import Env
+from cw.simulation import GymEnvironment
 
 
 class AgentBase(ABC):
     def __init__(self,
-                 environment: Env,
+                 environment: GymEnvironment,
                  path: Optional[Path]=None,
                  ):
         self.path = None if path is None else Path(path)
@@ -40,13 +40,7 @@ class AgentBase(ABC):
         metadata = self.get_metadata()
         with (self.path / f"agent.{label}.pickle").open("wb") as f:
             self.last_save_time = time.time()
-            pickle.dump((1, metadata, self.last_save_time,
-                         self.score_sum, self.total_score_sum,
-                         self.n_episodes, self.n_total_episodes), f)
-
-        if reset_average_score:
-            self.score_sum = 0
-            self.n_episodes = 0
+            pickle.dump((2, metadata, self.last_save_time), f)
 
     def load(self, label, missing_ok=False):
         if self.path is None:
@@ -66,10 +60,12 @@ class AgentBase(ABC):
                     version = data[0]
                     if version == 1:
                         _, metadata, self.last_save_time, \
-                        self.score_sum, self.total_score_sum, \
-                        self.n_episodes, self.n_total_episodes = data
+                        score_sum, total_score_sum, \
+                        n_episodes, n_total_episodes = data
+                    elif version == 2:
+                        _, metadata, self.last_save_time = data
                     else:
-                        raise NotImplemented(f"Agent datafile format version '{version}' not supported.")
+                        raise NotImplementedError(f"Agent datafile format version '{version}' not supported.")
 
             self.set_metadata(metadata)
         else:
