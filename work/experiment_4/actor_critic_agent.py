@@ -110,6 +110,7 @@ class ActorCriticAgent(AgentBase):
                 action_probs = action_probs.write(i, action_probs_t[0, action])
 
                 # Apply action to the environment to get next state and reward
+                # action = tf.constant(0)
                 state, reward, done = self.tf_env_step(action)
                 state.set_shape(initial_state_shape)
 

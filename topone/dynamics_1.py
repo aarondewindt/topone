@@ -2,6 +2,7 @@ from typing import Sequence, Callable, Optional
 from collections import namedtuple
 from math import sin, cos, sqrt, atan2, pi
 from enum import Enum
+from dataclasses import dataclass
 
 import numpy as np
 from numba import jit
@@ -9,7 +10,14 @@ from cw.simulation import ModuleBase, StatesBase
 from cw.constants import g_earth
 
 
-Stage = namedtuple("Stage", ("dry_mass", "propellant_mass", "specific_impulse", "thrust"))
+@dataclass
+class Stage:
+    dry_mass: float
+    propellant_mass: float
+    specific_impulse: float
+    thrust: float
+    n_ignitions: Optional[int] = 1
+
 
 UNFIRED = 0
 FIRING = 1
@@ -44,6 +52,7 @@ class Dynamics1(ModuleBase):
                 "engine_on",
                 "stage_state",
                 "stage_idx",
+                "stage_ignitions_left",
                 "h",
                 "gamma_i",
                 "gamma_e",
@@ -55,6 +64,8 @@ class Dynamics1(ModuleBase):
         self.stages = stages
         self.last_stage_idx = len(stages) - 1
         self.current_stage = self.stages[0]
+
+        self.infite_ignitions = False
 
         self.initial_latitude = initial_latitude
         self.initial_altitude = initial_altitude
@@ -68,6 +79,14 @@ class Dynamics1(ModuleBase):
         simulation.states.mass = self.current_stage.dry_mass + self.current_stage.propellant_mass
         simulation.states.stage_idx = 0
         simulation.states.stage_state = UNFIRED
+
+        if self.current_stage.n_ignitions is None:
+            simulation.states.stage_ignitions_left = 1
+            self.infite_ignitions = True
+        else:
+            self.infite_ignitions = False
+            simulation.states.stage_ignitions_left = self.current_stage.n_ignitions
+
         simulation.states.theta = -hpi + self.initial_latitude + self.initial_theta_e
         simulation.states.theta_dot = 0
         simulation.states.engine_on = False
@@ -92,23 +111,28 @@ class Dynamics1(ModuleBase):
 
         s.vic = s.tci @ s.vii
 
-        # Switch stages.
         # Keep the engine off if it's been fired already.
         if s.stage_state == FIRED:
             s.engine_on = False
 
-        # Go to the firing state if the engine.
+        # Go to the firing state if we get the command to do so.
+        # Remove one ignotion
         elif s.stage_state == UNFIRED:
             if s.command_engine_on:
+                if not self.infite_ignitions:
+                    s.stage_ignitions_left -= 1
                 s.stage_state = FIRING
                 s.engine_on = True
 
         # Turn the engine off and go to the fired state if the engine has been
         # turned off or ran out of propellant.
         else:
-            if (not s.command_engine_on) or (s.mass <= self.current_stage.dry_mass):
-                s.stage_state = FIRED
+            if not s.command_engine_on:
                 s.engine_on = False
+                if (s.stage_ignitions_left == 0) or (s.mass <= self.current_stage.dry_mass):
+                    s.stage_state = FIRED
+                else:
+                    s.stage_state = UNFIRED
 
         if s.engine_on:
             s.mass_dot = -self.current_stage.thrust / self.current_stage.specific_impulse / g_earth
@@ -121,16 +145,28 @@ class Dynamics1(ModuleBase):
         if s.command_drop_stage:
             s.command_drop_stage = False
             if s.stage_idx < self.last_stage_idx:
+                # Switch to the next state.
                 s.stage_idx += 1
                 self.current_stage = self.stages[s.stage_idx]
                 s.mass = self.current_stage.dry_mass + self.current_stage.propellant_mass
                 s.stage_state = UNFIRED
+
+                # If we have infinite ignitions, set the number of ignitions left to -1.
+                if self.current_stage.n_ignitions is None:
+                    s.stage_ignitions_left = 1
+                    self.infite_ignitions = True
+                else:
+                    self.infite_ignitions = False
+                    s.stage_ignitions_left = self.current_stage.n_ignitions
+
+                # Reset the integrator so the discontinuity caused by the stage change
+                # doesn't make it go crazy.
                 self.simulation.integrator.reset(states=True)
 
         s.aii = s.gii + s.fii_thrust / s.mass
 
-        if s.h <= 0:
-            self.simulation.stop()
+        # if s.h <= 0:
+        #     self.simulation.stop()
 
     def get_attributes(self):
         return {
