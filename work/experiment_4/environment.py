@@ -1,9 +1,14 @@
+from math import sin
 from typing import Any, Tuple
 
 from gym import spaces
 import numpy as np
 
-from cw.simulation import GymEnvironment
+from cw.simulation import GymEnvironment, alias_states
+from cw.control import PController, PIDController
+
+
+hpi = np.pi / 2
 
 
 class Environment(GymEnvironment):
@@ -11,11 +16,19 @@ class Environment(GymEnvironment):
                  required_states=None,
                  target_time_step=None
                  ):
+        required_states = required_states or []
         super().__init__(
             target_time_step=target_time_step,
-            required_states=required_states,
+            required_states=required_states + [
+                "command_theta_e",
+                "command_gamma_e"
+            ],
         )
 
+        self.gamma_controller = PIDController(4, 0.1, 0.1)
+        self.kp_theta = 10
+
+        # Environment spaces
         self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Tuple((
             spaces.Discrete(1),
@@ -24,11 +37,34 @@ class Environment(GymEnvironment):
             spaces.Box(low=np.inf, high=np.inf, shape=(1,))
         ))
 
-    def act(self, action: Any):
-        self.s.command_engine_on = bool(action)
+    def initialize(self,  simulation):
+        super().initialize(simulation)
+        self.gamma_controller.reset()
 
+    @alias_states
+    def environment_step(self, is_last):
+        if self.s.vic[1] > 1:
+            self.s.command_gamma_e = 0.1 * sin(self.s.t) + hpi
+
+            self.gamma_controller.command = self.s.command_gamma_e
+            self.s.command_theta_e = self.s.theta_e + self.gamma_controller.step(self.s.t, self.s.gamma_e)
+
+            self.s.theta_dot = np.clip(self.kp_theta * (self.s.command_theta_e - self.s.theta_e), -1, 1)
+        else:
+            self.s.command_gamma_e = self.s.gamma_e
+            self.s.command_theta_e = self.s.theta_e
+            self.s.theta_dot = 0.
+
+        self.s.command_engine_on = True
+        if self.s.stage_state == 2:
+            self.s.command_drop_stage = True
+
+    @alias_states
+    def act(self, action: Any):
+        pass
+
+    @alias_states
     def observe(self, done: bool) -> Tuple[Any, float, dict]:
-        # print("done", done)
         observation = np.array((
             self.s.stage_state == 0,
             self.s.stage_state == 1,

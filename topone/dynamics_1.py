@@ -46,6 +46,7 @@ class Dynamics1(ModuleBase):
                 "tci",
                 "vic",
                 "theta", "theta_dot",
+                "theta_e",
                 "mass",
                 "mass_dot",
                 "fii_thrust",
@@ -106,6 +107,8 @@ class Dynamics1(ModuleBase):
         s.latitude = atan2(s.xii[1], s.xii[0])
         s.gamma_e = hpi + s.gamma_i - s.latitude
 
+        s.theta_e = hpi + s.theta - s.latitude
+
         s.tci = np.array(((-sin(s.latitude), cos(s.latitude)),
                           (cos(s.latitude), sin(s.latitude))))
 
@@ -116,7 +119,7 @@ class Dynamics1(ModuleBase):
             s.engine_on = False
 
         # Go to the firing state if we get the command to do so.
-        # Remove one ignotion
+        # Remove one ignition
         elif s.stage_state == UNFIRED:
             if s.command_engine_on:
                 if not self.infite_ignitions:
