@@ -92,6 +92,7 @@ class Dynamics1(ModuleBase):
         simulation.states.theta_dot = 0
         simulation.states.engine_on = False
         simulation.states.vii = np.zeros(2)
+        simulation.states.latitude = self.initial_latitude
         simulation.states.xii = np.array([
             cos(self.initial_latitude) * initial_r,
             sin(self.initial_latitude) * initial_r

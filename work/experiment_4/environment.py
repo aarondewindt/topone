@@ -1,4 +1,5 @@
-from math import sin
+from math import radians
+import random
 from typing import Any, Tuple
 
 from gym import spaces
@@ -40,15 +41,16 @@ class Environment(GymEnvironment):
     def initialize(self,  simulation):
         super().initialize(simulation)
         self.gamma_controller.reset()
+        initial_theta_e = hpi + radians(random.uniform(-20, 20))
+        simulation.states.theta = -hpi + simulation.states.latitude + initial_theta_e
 
     @alias_states
     def environment_step(self, is_last):
-        if self.s.vic[1] > 1:
-            self.s.command_gamma_e = 0.1 * sin(self.s.t) + hpi
+        self.s.command_gamma_e = hpi
 
+        if self.s.t > 0.1:
             self.gamma_controller.command = self.s.command_gamma_e
             self.s.command_theta_e = self.s.theta_e + self.gamma_controller.step(self.s.t, self.s.gamma_e)
-
             self.s.theta_dot = np.clip(self.kp_theta * (self.s.command_theta_e - self.s.theta_e), -1, 1)
         else:
             self.s.command_gamma_e = self.s.gamma_e
