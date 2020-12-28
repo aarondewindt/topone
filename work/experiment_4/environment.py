@@ -10,6 +10,7 @@ from cw.control import PController, PIDController
 
 
 hpi = np.pi / 2
+tpi = np.pi * 2
 
 
 class Environment(GymEnvironment):
@@ -31,12 +32,10 @@ class Environment(GymEnvironment):
 
         # Environment spaces
         self.action_space = spaces.Discrete(2)
-        self.observation_space = spaces.Tuple((
-            spaces.Discrete(1),
-            spaces.Discrete(1),
-            spaces.Discrete(1),
-            spaces.Box(low=np.inf, high=np.inf, shape=(1,))
-        ))
+        self.observation_space = spaces.Box(
+            low=np.array([0, 0, -np.inf, -np.inf]),
+            high=np.array([tpi, tpi, np.inf, np.inf]),
+            shape=(4,))
 
     def initialize(self,  simulation):
         super().initialize(simulation)
@@ -46,8 +45,6 @@ class Environment(GymEnvironment):
 
     @alias_states
     def environment_step(self, is_last):
-        self.s.command_gamma_e = hpi
-
         if self.s.t > 0.1:
             self.gamma_controller.command = self.s.command_gamma_e
             self.s.command_theta_e = self.s.theta_e + self.gamma_controller.step(self.s.t, self.s.gamma_e)
@@ -63,14 +60,14 @@ class Environment(GymEnvironment):
 
     @alias_states
     def act(self, action: Any):
-        pass
+        self.s.command_gamma_e = action
 
     @alias_states
     def observe(self, done: bool) -> Tuple[Any, float, dict]:
         observation = np.array((
-            self.s.stage_state == 0,
-            self.s.stage_state == 1,
-            self.s.stage_state == 2,
+            self.s.gamma_e,
+            self.s.theta_e,
+            np.linalg.norm(self.s.vic),
             self.s.h
         ))
 

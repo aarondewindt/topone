@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 import semver
 from tensorflow.keras import layers
+from tensorflow.keras.backend import function
 from tqdm.auto import trange
 
 import gym
@@ -85,7 +86,7 @@ class ActorCriticAgent(AgentBase):
 
     def run_episode(self, initial_state: tf.Tensor, n_max_steps):
         if self.environment.thread_running:
-            action_probs = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
+            actions = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
             values = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
             rewards = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
 
@@ -96,18 +97,18 @@ class ActorCriticAgent(AgentBase):
                 # Convert state into a batched tensor (batch size = 1)
                 state = tf.expand_dims(state, 0)
 
-                # Run the model and to get action probabilities and critic value
-                action_logits_t, value = self.model(state, training=True)
+                # Run the model and to get action gaussian distribution
+                # parameters and critic value
+                (mu, sigma_sq), value = self.model(state, training=True)
 
-                # Sample next action from the action probability distribution
-                action = tf.random.categorical(action_logits_t, 1)[0, 0]
-                action_probs_t = tf.nn.softmax(action_logits_t)
+                # Get action
+                action = tf.random.normal([1], mu, tf.sqrt(sigma_sq))
 
                 # Store critic values
                 values = values.write(i, tf.squeeze(value))
 
-                # Store log probability of the action chosen
-                action_probs = action_probs.write(i, action_probs_t[0, action])
+                # Store action of the action chosen
+                actions = actions.write(i, action)
 
                 # Apply action to the environment to get next state and reward
                 # action = tf.constant(0)
@@ -155,7 +156,7 @@ class ActorCriticAgent(AgentBase):
         return returns
 
     def compute_loss(self,
-                     action_probs: tf.Tensor,
+                     actions: tf.Tensor,
                      values: tf.Tensor,
                      returns: tf.Tensor) -> tf.Tensor:
         """Computes the combined actor-critic loss."""
