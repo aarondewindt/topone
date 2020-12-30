@@ -37,20 +37,26 @@ class Logger:
         self.time_attribute = attribute
 
     def step(self):
-        step_log = [getattr(self.time_attribute_object, self.time_attribute)]
-        self.raw_episode_log.append(step_log)
+        self.raw_episode_log.append(self.step_log())
 
+    def step_log(self):
+        step_log = [getattr(self.time_attribute_object, self.time_attribute)]
         for obj, _, attributes in self.registry:
             object_log = deque()
             step_log.append(object_log)
             for attribute in attributes:
                 object_log.append(getattr(obj, attribute))
+        return step_log
 
     def episode_reset(self):
         self.raw_episode_log = deque()
 
     def episode_finish(self):
-        self.raw_batch_log.append(self.raw_episode_log[-1])
+        if self.raw_episode_log:
+            self.raw_batch_log.append(self.raw_episode_log[-1])
+        else:
+            self.raw_batch_log.append(self.step_log())
+
         result = self.log_to_dataset(self.raw_episode_log, True)
         self.episode_reset()
         return result

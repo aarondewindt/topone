@@ -35,12 +35,15 @@ class LauncherV1(gym.Env):
     metadata = {'render.modes': []}
 
     def __init__(self,
+                 dt: float,
                  surface_diameter: float,
                  mu: float,
                  stages: Sequence[Stage],
                  initial_longitude: float,
                  initial_altitude: float,
-                 initial_theta_e: float):
+                 initial_theta_e: float,
+                 gamma_controller_gains: Tuple[float, float, float],
+                 theta_controller_gains: Tuple[float, float, float]):
 
         self.action_space = gym.spaces.Tuple((
             gym.spaces.Discrete(2),  # Engine command
@@ -52,12 +55,15 @@ class LauncherV1(gym.Env):
         self.random = np.random.Generator(np.random.PCG64())
 
         self.sim = Simulation(
+            dt=dt,
             surface_diameter=surface_diameter,
             mu=mu,
             stages=nb.typed.List([stage.to_tuple() for stage in stages]),
             initial_longitude=initial_longitude,
             initial_altitude=initial_altitude,
             initial_theta_e=initial_theta_e,
+            gamma_controller_gains=tuple(gamma_controller_gains),
+            theta_controller_gains=tuple(theta_controller_gains),
         )
 
         self.reset()
@@ -68,11 +74,12 @@ class LauncherV1(gym.Env):
     def seed(self, seed=None):
         self.random = np.random.Generator(np.random.PCG64(seed))
 
-    def step(self, action: Tuple[bool, bool, float]):
+    def step(self, action: Tuple[bool, bool, int, float]):
         self.sim.step((
             action[0],
             action[1],
-            np.float64(action[2])
+            nb.int32(action[2]),
+            nb.float64(action[3])
         ))
 
     def render(self, mode='human'):
