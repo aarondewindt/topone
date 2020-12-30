@@ -5,12 +5,14 @@ import inspect
 import pickle
 import time
 
+import gym
+
 from cw.simulation import GymEnvironment
 
 
 class AgentBase(ABC):
     def __init__(self,
-                 environment: GymEnvironment,
+                 environment: gym.Env,
                  path: Optional[Path]=None,
                  ):
         self.path = None if path is None else Path(path)

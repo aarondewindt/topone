@@ -29,7 +29,7 @@ class ActorCriticAgent(AgentBase):
     def __init__(self, *,
                  alpha: float,
                  gamma: float,
-                 environment: GymEnvironment,
+                 environment: gym.Env,
                  path: Path=None,
                  load_last=True):
         super().__init__(
